@@ -1,1 +1,544 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alex Rivera — Creative Developer // SYSTEM ONLINE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0D12;
+    --surface:#12151C;
+    --surface-2:#1A1E27;
+    --ink:#F2EFE6;
+    --ink-soft:#8B93A1;
+    --red:#E2231A;
+    --gold:#FFC94D;
+    --glow:#FF6A3D;
+    --line:#2A2F3A;
+    --line-strong:#3E4451;
+    --shadow: 0 20px 70px rgba(226,35,26,0.12);
+    color-scheme: dark;
+  }
+  html.light{
+    --bg:#EDEBE3;
+    --surface:#FFFFFF;
+    --surface-2:#E3E0D6;
+    --ink:#12151C;
+    --ink-soft:#5B6270;
+    --red:#C81E1E;
+    --gold:#B8860B;
+    --glow:#E2231A;
+    --line:#D8D4C8;
+    --line-strong:#B8B3A6;
+    --shadow: 0 20px 60px rgba(0,0,0,0.08);
+    color-scheme: light;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Rajdhani', sans-serif; font-weight:500;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    transition:background .4s ease, color .4s ease;
+  }
+  ::selection{ background:var(--red); color:#fff; }
+  a{ color:inherit; }
+  h1,h2,h3,.display{ font-family:'Orbitron', sans-serif; margin:0; letter-spacing:0.01em; }
+  .mono{ font-family:'Rajdhani', sans-serif; letter-spacing:0.08em; text-transform:uppercase; }
+  :focus-visible{ outline:2px solid var(--red); outline-offset:3px; }
 
+  /* HUD circuit-grid backdrop */
+  .grid-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      radial-gradient(circle at 1px 1px, var(--line-strong) 1px, transparent 1px);
+    background-size:38px 38px;
+    opacity:0.4;
+  }
+  html.light .grid-bg{ opacity:0.5; }
+
+  /* scanline sweep overlay (subtle, respects reduced motion via JS) */
+  .scanline{
+    position:fixed; left:0; right:0; height:2px; z-index:35; pointer-events:none;
+    background:linear-gradient(90deg, transparent, var(--glow), transparent);
+    opacity:0.5; top:-10px;
+  }
+
+  /* corner reticle marks */
+  .corner-mark{ position:fixed; width:26px; height:26px; z-index:40; pointer-events:none; opacity:0.55; }
+  .corner-mark svg{ width:100%; height:100%; stroke:var(--gold); }
+  .corner-mark.tl{ top:16px; left:16px; }
+  .corner-mark.tr{ top:16px; right:16px; }
+  .corner-mark.bl{ bottom:16px; left:16px; }
+  .corner-mark.br{ bottom:16px; right:16px; }
+  @media (max-width:720px){ .corner-mark{ display:none; } }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 32px; position:relative; z-index:1; }
+  @media (max-width:720px){ .wrap{ padding:0 20px; } }
+
+  /* NAV */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; }
+  @media (max-width:720px){ .nav-inner{ padding:14px 20px; } }
+  .logo{ display:flex; align-items:center; gap:10px; text-decoration:none; font-family:'Orbitron'; font-size:14px; font-weight:700; }
+  .status-dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold); animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  .nav-links{ display:flex; align-items:center; gap:30px; list-style:none; margin:0; padding:0; }
+  .nav-links a{
+    text-decoration:none; font-size:14px; font-weight:600; letter-spacing:0.04em;
+    color:var(--ink-soft); position:relative; padding-bottom:2px;
+  }
+  .nav-links a::before{ content:'>'; color:var(--red); margin-right:4px; opacity:0; transition:opacity .2s ease; }
+  .nav-links a:hover::before{ opacity:1; }
+  .nav-links a:hover{ color:var(--ink); }
+  @media (max-width:720px){ .nav-links{ display:none; } }
+
+  .toggle-switch{
+    display:flex; align-items:center; background:none; border:1px solid var(--line-strong);
+    border-radius:20px; padding:4px; cursor:pointer; width:54px; height:28px; position:relative;
+  }
+  .toggle-switch .knob{
+    width:20px; height:20px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, var(--gold), var(--red));
+    box-shadow:0 0 10px var(--glow);
+    position:absolute; top:3px; left:3px; transition:transform .3s ease;
+  }
+  html.light .toggle-switch .knob{ transform:translateX(25px); }
+
+  /* HERO */
+  .hero{ display:grid; grid-template-columns:1.1fr 1fr; align-items:center; gap:40px; min-height:88vh; padding:60px 0 40px; }
+  @media (max-width:900px){ .hero{ grid-template-columns:1fr; min-height:auto; padding:40px 0; } }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:10px; font-size:13px; font-weight:700;
+    color:var(--gold); margin-bottom:22px;
+  }
+  .eyebrow::before{ content:''; width:24px; height:1px; background:var(--gold); }
+
+  .hero h1{
+    font-size:clamp(2rem, 4.2vw, 3.2rem); line-height:1.15; font-weight:700;
+    max-width:15ch; text-transform:uppercase;
+  }
+  .hero h1 em{ font-style:normal; color:var(--red); text-shadow:0 0 18px var(--glow); }
+  .hero p.lede{ margin-top:24px; font-size:18px; line-height:1.6; color:var(--ink-soft); max-width:46ch; font-weight:500; }
+  .hero-cta{ display:flex; gap:16px; margin-top:36px; flex-wrap:wrap; }
+  .btn{
+    font-family:'Orbitron'; font-size:12px; font-weight:700; letter-spacing:0.05em;
+    padding:15px 24px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .2s ease, box-shadow .2s ease; border:1px solid transparent; clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  }
+  .btn-primary{ background:linear-gradient(135deg, var(--red), #B8151A); color:#fff; box-shadow:0 8px 24px rgba(226,35,26,0.35); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(226,35,26,0.5); }
+  .btn-ghost{ border-color:var(--line-strong); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--gold); color:var(--gold); transform:translateY(-2px); }
+
+  /* Reactor stage */
+  .stage{ position:relative; aspect-ratio:1/1; max-width:480px; margin:0 auto; width:100%; }
+  .stage canvas{ width:100% !important; height:100% !important; display:block; }
+  .stage-ring{
+    position:absolute; inset:0; border-radius:50%; border:1px dashed var(--line-strong);
+    opacity:0.5; pointer-events:none; animation:spin 40s linear infinite;
+  }
+  .stage-ring.r2{ inset:34px; animation-duration:60s; animation-direction:reverse; border-style:solid; opacity:0.25; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .stage-label{ position:absolute; font-size:11px; font-weight:600; color:var(--gold); pointer-events:none; }
+  .stage-label.top{ top:2px; left:2px; }
+  .stage-label.bottom{ bottom:2px; right:2px; text-align:right; color:var(--ink-soft); }
+
+  /* SECTION HEADER */
+  section.block{ padding:90px 0; border-top:1px solid var(--line); position:relative; z-index:1; }
+  .fig-header{ display:flex; align-items:baseline; gap:18px; margin-bottom:52px; flex-wrap:wrap; }
+  .fig-tag{ font-family:'Orbitron'; font-size:12px; color:var(--red); letter-spacing:0.08em; white-space:nowrap; }
+  .fig-line{ flex:1; height:1px; background:var(--line); min-width:40px; position:relative; }
+  .fig-line::after{ content:''; position:absolute; right:0; top:-3px; width:7px; height:7px; background:var(--gold); transform:rotate(45deg); }
+  .fig-header h2{ font-size:clamp(1.4rem,2.4vw,1.9rem); font-weight:700; text-transform:uppercase; }
+
+  /* SKILLS as power meters */
+  .skill-grid{ display:grid; gap:26px; }
+  .skill-row{ display:grid; grid-template-columns:190px 1fr 70px; align-items:center; gap:18px; }
+  @media (max-width:640px){ .skill-row{ grid-template-columns:110px 1fr 54px; gap:12px; } }
+  .skill-name{ font-weight:600; font-size:15px; letter-spacing:0.02em; }
+  .skill-track{ position:relative; height:10px; background:var(--surface-2); border:1px solid var(--line); overflow:hidden; }
+  .skill-track .fill{
+    position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:linear-gradient(90deg, var(--red), var(--gold));
+    box-shadow:0 0 10px var(--glow);
+    background-image:repeating-linear-gradient(90deg, transparent 0 10px, rgba(0,0,0,0.15) 10px 12px);
+  }
+  .skill-val{ font-family:'Orbitron'; font-size:12px; color:var(--gold); text-align:right; }
+
+  /* PROJECTS as mission files */
+  .project-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:2px; background:var(--line); border:1px solid var(--line); }
+  @media (max-width:760px){ .project-grid{ grid-template-columns:1fr; } }
+  .project-card{ background:var(--surface); padding:36px; position:relative; overflow:hidden; transition:background .3s ease; }
+  .project-card::before{
+    content:''; position:absolute; inset:0; border:1px solid var(--red);
+    opacity:0; transition:opacity .35s ease; box-shadow:0 0 24px rgba(226,35,26,0.25) inset;
+  }
+  .project-card:hover::before{ opacity:0.7; }
+  .plate-tag{ font-family:'Orbitron'; font-size:11px; color:var(--red); letter-spacing:0.06em; }
+  .project-card h3{ font-size:1.25rem; margin:14px 0 10px; font-weight:700; text-transform:uppercase; }
+  .project-card p{ color:var(--ink-soft); font-size:15px; line-height:1.6; margin:0 0 18px; max-width:42ch; font-weight:500; }
+  .tag-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .tag{ font-size:11px; font-weight:600; color:var(--ink-soft); border:1px solid var(--line-strong); padding:3px 9px; letter-spacing:0.03em; }
+  .project-link{ font-family:'Orbitron'; font-size:12px; text-decoration:none; color:var(--ink); border-bottom:1px solid var(--red); padding-bottom:2px; }
+  .project-link:hover{ color:var(--red); }
+
+  /* CONTACT HUD panel */
+  .title-block{ border:1px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); }
+  @media (max-width:720px){ .title-block{ grid-template-columns:repeat(2,1fr); } }
+  .tb-cell{ padding:22px 24px; border-right:1px solid var(--line); border-top:1px solid var(--line); }
+  .tb-cell:nth-child(4n){ border-right:none; }
+  .tb-label{ font-family:'Orbitron'; font-size:10px; color:var(--gold); letter-spacing:0.08em; margin-bottom:8px; display:block; }
+  .tb-value{ font-size:17px; font-weight:600; }
+  .tb-value a{ text-decoration:none; border-bottom:1px solid var(--red); }
+
+  footer{ padding:40px 0 60px; position:relative; z-index:1; }
+  .footer-inner{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
+    font-size:12px; font-weight:600; letter-spacing:0.05em; color:var(--ink-soft);
+    border-top:1px solid var(--line); padding-top:24px; text-transform:uppercase;
+  }
+
+  .reveal{ opacity:0; transform:translateY(28px); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanline" id="scanline"></div>
+
+<div class="corner-mark tl"><svg viewBox="0 0 24 24" fill="none"><path d="M2 10V2H10" stroke-width="1.5"/><circle cx="2" cy="2" r="1.2" fill="var(--gold)" stroke="none"/></svg></div>
+<div class="corner-mark tr"><svg viewBox="0 0 24 24" fill="none"><path d="M22 10V2H14" stroke-width="1.5"/></svg></div>
+<div class="corner-mark bl"><svg viewBox="0 0 24 24" fill="none"><path d="M2 14V22H10" stroke-width="1.5"/></svg></div>
+<div class="corner-mark br"><svg viewBox="0 0 24 24" fill="none"><path d="M22 14V22H14" stroke-width="1.5"/></svg></div>
+
+<main id="top">
+<nav>
+  <div class="nav-inner">
+    <a href="#top" class="logo"><span class="status-dot"></span> ALEX.RIVERA_OS</a>
+    <ul class="nav-links">
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <button class="toggle-switch" id="darkToggle" aria-label="Ganti mode power" aria-pressed="true">
+      <span class="knob"></span>
+    </button>
+  </div>
+</nav>
+
+<section class="hero wrap">
+  <div class="hero-copy">
+    <span class="eyebrow mono">System Status: Online</span>
+    <h1>Creative developer running at <em>full power</em>.</h1>
+    <p class="lede">Alex Rivera — membangun pengalaman web 3D dan interaksi bergerak, dari prototipe WebGL sampai produk yang dipakai ribuan pengguna. Semua sistem nominal.</p>
+    <div class="hero-cta">
+      <a href="#projects" class="btn btn-primary">Lihat Proyek →</a>
+      <a href="#" class="btn btn-ghost">Unduh CV</a>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="stage-ring"></div>
+    <div class="stage-ring r2"></div>
+    <span class="stage-label top mono">Core // Active</span>
+    <span class="stage-label bottom mono">Output 92%</span>
+  </div>
+</section>
+
+  <section class="block" id="skills">
+    <div class="wrap">
+      <div class="fig-header">
+        <span class="fig-tag">MODULE_01</span>
+        <div class="fig-line"></div>
+        <h2>Systems &amp; Skills</h2>
+      </div>
+      <div class="skill-grid">
+
+        <div class="skill-row reveal">
+          <span class="skill-name">JavaScript / TypeScript</span>
+          <div class="skill-track"><div class="fill" data-value="92"></div></div>
+          <span class="skill-val">PWR 92%</span>
+        </div>
+
+        <div class="skill-row reveal">
+          <span class="skill-name">Three.js / WebGL</span>
+          <div class="skill-track"><div class="fill" data-value="88"></div></div>
+          <span class="skill-val">PWR 88%</span>
+        </div>
+
+        <div class="skill-row reveal">
+          <span class="skill-name">GSAP &amp; Motion Design</span>
+          <div class="skill-track"><div class="fill" data-value="85"></div></div>
+          <span class="skill-val">PWR 85%</span>
+        </div>
+
+        <div class="skill-row reveal">
+          <span class="skill-name">React / Next.js</span>
+          <div class="skill-track"><div class="fill" data-value="90"></div></div>
+          <span class="skill-val">PWR 90%</span>
+        </div>
+
+        <div class="skill-row reveal">
+          <span class="skill-name">Node.js &amp; API</span>
+          <div class="skill-track"><div class="fill" data-value="78"></div></div>
+          <span class="skill-val">PWR 78%</span>
+        </div>
+
+        <div class="skill-row reveal">
+          <span class="skill-name">UI / UX Design</span>
+          <div class="skill-track"><div class="fill" data-value="80"></div></div>
+          <span class="skill-val">PWR 80%</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="projects">
+    <div class="wrap">
+      <div class="fig-header">
+        <span class="fig-tag">MODULE_02</span>
+        <div class="fig-line"></div>
+        <h2>Mission Log // Projects</h2>
+      </div>
+    </div>
+    <div class="project-grid wrap" style="padding-left:32px; padding-right:32px;">
+
+      <div class="project-card reveal">
+        <span class="plate-tag">FILE // 001</span>
+        <h3>Nova — Studio Seni Generatif</h3>
+        <p>Kanvas WebGL interaktif yang menghasilkan pola generatif real-time berdasarkan input audio pengguna.</p>
+        <div class="tag-row"><span class="tag">Three.js</span><span class="tag">Web Audio API</span><span class="tag">GLSL</span></div>
+        <a href="#" class="project-link">Buka laporan →</a>
+      </div>
+
+      <div class="project-card reveal">
+        <span class="plate-tag">FILE // 002</span>
+        <h3>Ledgerline — Dashboard Fintech</h3>
+        <p>Dashboard analitik keuangan dengan visualisasi data kompleks dan animasi transisi antar-state yang mulus.</p>
+        <div class="tag-row"><span class="tag">React</span><span class="tag">D3.js</span><span class="tag">GSAP</span></div>
+        <a href="#" class="project-link">Buka laporan →</a>
+      </div>
+
+      <div class="project-card reveal">
+        <span class="plate-tag">FILE // 003</span>
+        <h3>Terra — Konfigurator Produk 3D</h3>
+        <p>Konfigurator produk berbasis 3D real-time yang memungkinkan pengguna kustomisasi warna, material, dan ukuran.</p>
+        <div class="tag-row"><span class="tag">Three.js</span><span class="tag">React Three Fiber</span></div>
+        <a href="#" class="project-link">Buka laporan →</a>
+      </div>
+
+      <div class="project-card reveal">
+        <span class="plate-tag">FILE // 004</span>
+        <h3>Wanderlab — Platform Travel</h3>
+        <p>Platform pemesanan perjalanan dengan micro-interaction dan scroll storytelling untuk tiap destinasi.</p>
+        <div class="tag-row"><span class="tag">Next.js</span><span class="tag">GSAP ScrollTrigger</span></div>
+        <a href="#" class="project-link">Buka laporan →</a>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="block" id="contact">
+    <div class="wrap">
+      <div class="fig-header">
+        <span class="fig-tag">MODULE_03</span>
+        <div class="fig-line"></div>
+        <h2>Comms Channel</h2>
+      </div>
+      <div class="title-block reveal">
+        <div class="tb-cell">
+          <span class="tb-label">Pilot</span>
+          <span class="tb-value">Alex Rivera</span>
+        </div>
+        <div class="tb-cell">
+          <span class="tb-label">Comms</span>
+          <span class="tb-value"><a href="mailto:hello@alexrivera.dev">hello@alexrivera.dev</a></span>
+        </div>
+        <div class="tb-cell">
+          <span class="tb-label">Lokasi</span>
+          <span class="tb-value">Jakarta, ID</span>
+        </div>
+        <div class="tb-cell">
+          <span class="tb-label">Status</span>
+          <span class="tb-value">Tersedia untuk proyek</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="wrap">
+    <div class="footer-inner">
+      <span>© 2026 Alex Rivera — All Systems Reserved</span>
+      <span>Log ref. 001 / Build A / Uptime 100%</span>
+    </div>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var root = document.documentElement;
+
+  /* ---------- scanline sweep ---------- */
+  var scanline = document.getElementById('scanline');
+  if(!prefersReduced && window.gsap){
+    gsap.to(scanline, { top: '100vh', duration: 4.5, repeat: -1, ease:'power1.inOut', delay:1 });
+  }
+
+  /* ---------- power toggle (dark = default "suit active", light = "power down") ---------- */
+  var toggle = document.getElementById('darkToggle');
+  function applyMode(isLight){
+    root.classList.toggle('light', isLight);
+    toggle.setAttribute('aria-pressed', isLight ? 'false':'true');
+    updateSceneColors();
+  }
+  var startLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+  applyMode(false); // default: suit active (dark)
+  toggle.addEventListener('click', function(){
+    applyMode(!root.classList.contains('light'));
+  });
+
+  /* ---------- GSAP scroll reveal ---------- */
+  if(window.gsap && window.ScrollTrigger){
+    gsap.registerPlugin(ScrollTrigger);
+    var reveals = document.querySelectorAll('.reveal');
+    if(prefersReduced){
+      reveals.forEach(function(el){ el.style.opacity = 1; el.style.transform = 'none'; });
+    } else {
+      reveals.forEach(function(el, i){
+        gsap.to(el, {
+          opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%' },
+          delay: (i % 6) * 0.05
+        });
+      });
+    }
+    document.querySelectorAll('.skill-track .fill').forEach(function(fill){
+      var val = fill.getAttribute('data-value');
+      gsap.to(fill, {
+        width: val + '%', duration: 1.1, ease: 'power2.out',
+        scrollTrigger: { trigger: fill, start: 'top 90%' }
+      });
+    });
+  }
+
+  /* ---------- Three.js arc-reactor core ---------- */
+  var stage = document.getElementById('stage');
+  var scene, camera, renderer, group, core, glowLight, ring1, ring2, ring3;
+  var mouseX = 0, mouseY = 0;
+
+  function getColor(varName, fallback){
+    var v = getComputedStyle(root).getPropertyValue(varName).trim();
+    return v || fallback;
+  }
+
+  function initScene(){
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 0, 6);
+
+    renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    resizeRenderer();
+    stage.insertBefore(renderer.domElement, stage.firstChild);
+
+    group = new THREE.Group();
+    scene.add(group);
+
+    // core glowing sphere
+    var coreGeo = new THREE.IcosahedronGeometry(0.55, 2);
+    var coreMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(getColor('--gold','#FFC94D')) });
+    core = new THREE.Mesh(coreGeo, coreMat);
+    group.add(core);
+
+    // inner wire shell
+    var shellGeo = new THREE.IcosahedronGeometry(0.85, 1);
+    var shellEdges = new THREE.EdgesGeometry(shellGeo);
+    var shell = new THREE.LineSegments(shellEdges, new THREE.LineBasicMaterial({ color: new THREE.Color(getColor('--red','#E2231A')), transparent:true, opacity:0.9 }));
+    group.add(shell);
+
+    // three concentric HUD rings (torus)
+    function makeRing(radius, tube, color, opacity){
+      var geo = new THREE.TorusGeometry(radius, tube, 8, 80);
+      var mat = new THREE.MeshBasicMaterial({ color: color, transparent:true, opacity: opacity, wireframe:false });
+      return new THREE.Mesh(geo, mat);
+    }
+    ring1 = makeRing(1.4, 0.01, new THREE.Color(getColor('--gold','#FFC94D')), 0.7);
+    ring2 = makeRing(1.7, 0.008, new THREE.Color(getColor('--ink-soft','#8B93A1')), 0.4);
+    ring3 = makeRing(2.0, 0.006, new THREE.Color(getColor('--red','#E2231A')), 0.5);
+    ring1.rotation.x = Math.PI/2.4;
+    ring2.rotation.x = Math.PI/2.1;
+    ring3.rotation.x = Math.PI/1.9;
+    group.add(ring1, ring2, ring3);
+
+    // point light for glow feel (affects nothing since MeshBasicMaterial, kept for potential future PBR, harmless)
+    glowLight = new THREE.PointLight(0xffffff, 1, 10);
+    glowLight.position.set(0,0,2);
+    scene.add(glowLight);
+
+    animate();
+  }
+
+  function updateSceneColors(){
+    if(!core) return;
+    core.material.color = new THREE.Color(getColor('--gold','#FFC94D'));
+    group.children.forEach(function(child){
+      if(child.type === 'LineSegments'){
+        child.material.color = new THREE.Color(getColor('--red','#E2231A'));
+      }
+    });
+    ring1.material.color = new THREE.Color(getColor('--gold','#FFC94D'));
+    ring2.material.color = new THREE.Color(getColor('--ink-soft','#8B93A1'));
+    ring3.material.color = new THREE.Color(getColor('--red','#E2231A'));
+  }
+
+  function resizeRenderer(){
+    if(!renderer) return;
+    var size = stage.clientWidth || 480;
+    renderer.setSize(size, size);
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resizeRenderer);
+
+  stage.addEventListener('mousemove', function(e){
+    var rect = stage.getBoundingClientRect();
+    mouseX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    mouseY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+  });
+  stage.addEventListener('mouseleave', function(){ mouseX = 0; mouseY = 0; });
+
+  var t = 0;
+  var autoRotateSpeed = prefersReduced ? 0.0008 : 0.003;
+  function animate(){
+    requestAnimationFrame(animate);
+    t += 0.02;
+    if(group){
+      group.rotation.y += autoRotateSpeed + mouseX * 0.002;
+      group.rotation.x += mouseY * 0.0015;
+      ring1.rotation.z += 0.004;
+      ring2.rotation.z -= 0.003;
+      ring3.rotation.z += 0.002;
+      var pulse = 1 + Math.sin(t) * (prefersReduced ? 0.02 : 0.06);
+      core.scale.set(pulse, pulse, pulse);
+    }
+    renderer.render(scene, camera);
+  }
+
+  if(window.THREE){ initScene(); }
+})();
+</script>
+</body>
+</html>
